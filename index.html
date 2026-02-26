@@ -3,206 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StarChat: Master Sequence</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <title>StarChat Noir</title>
     <style>
-        :root { --kakao-yellow: #fee500; --kakao-brown: #3c1e1e; --rank-gold: #ffd700; }
-        * { box-sizing: border-box; font-family: 'Apple SD Gothic Neo', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
-        body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; background: #000; }
-        #app { display: flex; flex-direction: column; height: 100%; max-width: 500px; margin: 0 auto; background: #fff; position: relative; }
+        /* ⚙️ 마스터 설정 (스크립트에서 수정 가능) */
+        /* ID: master77 / PW: 7777 */
 
-        /* 🔐 로그인 화면 (보안 강화) */
-        #login-screen { position: fixed; inset: 0; background: var(--kakao-yellow); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
-        .logo { font-size: 3.5rem; font-weight: 900; color: var(--kakao-brown); margin-bottom: 40px; cursor: pointer; user-select: none; }
-        
-        .char-select { display: flex; gap: 10px; margin-bottom: 20px; }
-        .char-btn { width: 75px; height: 95px; background: #fff; border-radius: 15px; border: 3px solid transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
-        .char-btn.active { border-color: var(--kakao-brown); transform: scale(1.1); }
-        .login-input { width: 100%; padding: 15px; border-radius: 12px; border: none; margin-bottom: 10px; font-size: 1rem; }
-        .login-submit { width: 100%; padding: 18px; background: var(--kakao-brown); color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+        :root { --bg: #ffffff; --text: #000000; --gray: #f2f2f2; --border: #eeeeee; }
+        * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; letter-spacing: -0.03em; }
+        body, html { margin: 0; padding: 0; height: 100vh; background: #fff; overflow: hidden; }
 
-        /* 📱 메인 UI & 랭킹 */
-        .header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f2f2f2; font-weight: bold; font-size: 1.3rem; }
-        .view { display: none; height: calc(100% - 135px); overflow-y: auto; }
+        #app { display: flex; flex-direction: column; height: 100%; max-width: 450px; margin: 0 auto; position: relative; }
+
+        /* 📱 카톡 스타일 헤더 */
+        .main-header { padding: 50px 20px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .main-header h1 { font-size: 1.5rem; font-weight: 800; margin: 0; }
+        .header-icons { display: flex; gap: 18px; font-size: 1.2rem; cursor: pointer; }
+
+        /* 📋 뷰 섹션 */
+        .view { display: none; height: calc(100% - 145px); overflow-y: auto; }
         .view.active { display: block; }
-        .list-item { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #f9f9f9; }
-        .p-img { width: 52px; height: 52px; border-radius: 19px; margin-right: 15px; }
-        .crown { color: var(--rank-gold); font-size: 1.2rem; margin-right: 10px; }
 
-        /* 🎮 게임 센터 */
-        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
-        .game-card { height: 110px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; cursor: pointer; }
+        /* 👤 친구 리스트 (카톡 UI와 동일) */
+        .profile-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; transition: 0.2s; }
+        .profile-item:active { background: #f9f9f9; }
+        .p-img-kakao { width: 52px; height: 52px; border-radius: 20px; background: #000; margin-right: 15px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.1rem; overflow: hidden; background-size: cover; }
+        .p-info { flex: 1; }
+        .p-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+        .p-status { font-size: 0.75rem; color: #999; }
 
-        /* 📱 하단 네비 */
-        .nav { height: 65px; display: flex; border-top: 1px solid #eee; background: #fff; position: absolute; bottom: 0; width: 100%; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; color: #bbb; cursor: pointer; }
-        .nav-item.active { color: #000; font-weight: bold; }
+        /* 💬 채팅방 (카톡 말풍선 최적화) */
+        #chat-window { position: fixed; inset: 0; background: #fff; z-index: 5000; display: none; flex-direction: column; }
+        .chat-header { padding: 45px 15px 15px; border-bottom: 1px solid #f2f2f2; display: flex; align-items: center; }
+        .chat-body { flex: 1; background: #fff; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        
+        .bubble-wrap { display: flex; flex-direction: column; max-width: 85%; }
+        .bubble { padding: 9px 12px; border-radius: 14px; font-size: 0.9rem; line-height: 1.4; position: relative; }
+        .bubble-left { align-self: flex-start; background: var(--gray); border-top-left-radius: 2px; }
+        .bubble-right { align-self: flex-end; background: #000; color: #fff; border-top-right-radius: 2px; }
+        
+        /* 🖼️ 이미지 미리보기 & 업로드 */
+        #preview-area { display: none; padding: 10px 15px; background: #fcfcfc; border-top: 1px solid #eee; }
+        #preview-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; }
 
-        /* 💀 관리자 다크 패널 */
-        #admin-panel { position: fixed; inset: 0; background: #000; color: #0f0; z-index: 10000; display: none; flex-direction: column; padding: 25px; font-family: monospace; }
+        .chat-input-bar { padding: 10px 15px 30px; border-top: 1px solid #f2f2f2; display: flex; align-items: center; gap: 12px; }
+        .chat-input { flex: 1; border: none; background: #f4f4f4; padding: 10px 15px; border-radius: 18px; outline: none; font-size: 0.9rem; }
+
+        /* 📞 통화/영상통화 (보이스톡/페이스톡 UI) */
+        #call-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 6000; display: none; flex-direction: column; align-items: center; justify-content: space-between; padding: 100px 0; color: #fff; }
+        .call-btns { display: flex; gap: 40px; margin-bottom: 20px; }
+        .call-circle { width: 65px; height: 65px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; }
+
+        /* 🧭 하단 네비게이션 */
+        .bottom-nav { height: 75px; border-top: 1px solid #f2f2f2; display: flex; background: #fff; padding-bottom: 15px; }
+        .nav-tab { flex: 1; display: flex; align-items: center; justify-content: center; color: #ccc; cursor: pointer; }
+        .nav-tab.active { color: #000; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div id="login-screen">
-        <div class="logo" onclick="logoClick()">StarChat</div>
-        <div class="char-select">
-            <div class="char-btn active" onclick="selC(this, '라이언', '🦁')"><span>🦁</span>라이언</div>
-            <div class="char-btn" onclick="selC(this, '어피치', '🍑')"><span>🍑</span>어피치</div>
-            <div class="char-btn" onclick="selC(this, '무지', '🐰')"><span>🐰</span>무지</div>
-        </div>
-        <input type="text" id="nick" class="login-input" placeholder="마스터 닉네임">
-        <button class="login-submit" onclick="handleLogin()">제국 입장</button>
+    <div class="main-header">
+        <h1 id="v-title">친구</h1>
+        <div class="header-icons">🔍 👤+ ⚙️</div>
     </div>
 
-    <div id="admin-panel">
-        <h3>[EMPEROR ADMIN CONSOLE]</h3>
-        <hr border="1" color="#0f0">
-        <div id="admin-users" style="flex:1; overflow-y:auto; margin:15px 0;"></div>
-        <button onclick="db.ref('users').remove(); location.reload();" style="background:red; color:white; border:none; padding:15px; width:100%;">DB 강제 초기화</button>
-        <button onclick="document.getElementById('admin-panel').style.display='none'" style="margin-top:10px; width:100%;">닫기</button>
-    </div>
-
-    <div class="header">
-        <span id="v-title">친구</span>
-        <div style="display:flex; gap:15px;">🔍 💬+ ⚙️</div>
-    </div>
-
-    <div class="content" style="flex:1;">
-        <div id="v-friends" class="view active">
-            <div class="list-item" style="background:#fffaf0;">
-                <img id="my-img" src="" class="p-img" style="background:#eee">
-                <div class="p-info"><b id="my-name">마스터</b><p style="font-size:0.8rem; color:red;">POINT: <span id="my-score">0</span></p></div>
-            </div>
-            <div style="padding:10px 20px; font-size:0.75rem; color:#999; background:#f9f9f9;">👑 실시간 명예의 전당</div>
-            <div id="rank-list"></div>
-        </div>
-
-        <div id="v-chats" class="view">
-            <div class="list-item">
-                <img src="https://via.placeholder.com/52?text=OPEN" class="p-img" style="border:2px solid gold;">
-                <div class="p-info"><b>🌐 전세계 통합 오픈채팅</b><p style="font-size:0.8rem; color:#888;">매너 게임 부탁드립니다.</p></div>
+    <div id="v-friends" class="view active">
+        <div class="profile-item" onclick="openProfile('마스터', 'master77')">
+            <div class="p-img-kakao" id="my-p-img">M</div>
+            <div class="p-info">
+                <div class="p-name">마스터 (나)</div>
+                <div class="p-status">상태 메시지를 입력하세요.</div>
             </div>
         </div>
-
-        <div id="v-games" class="view">
-            <div class="game-grid">
-                <div class="game-card" style="background:#ff4444;" onclick="gameWin('uno')">🃏 우노 (1번 드로우)</div>
-                <div class="game-card" style="background:#e3a857; color:#000;" onclick="gameWin('baduk')">⚫ 바둑/오목</div>
-                <div class="game-card" style="background:#7f8c8d;" onclick="gameWin('chess')">♟️ 체스</div>
-                <div class="game-card" style="background:#3498db;" onclick="gameWin('bingo')">🔢 숫자 빙고</div>
+        <div style="height: 1px; background: #f2f2f2; margin: 10px 20px;"></div>
+        <div id="friend-list">
             </div>
+    </div>
+
+    <div id="v-chats" class="view">
+        <div class="profile-item" onclick="openChat('단체 채팅방', true)">
+            <div class="p-img-kakao">그룹</div>
+            <div class="p-info">
+                <div class="p-name">동기회 단톡방</div>
+                <div class="p-status">사진을 보냈습니다.</div>
+            </div>
+            <div style="font-size: 0.65rem; color: #ccc;">오후 3:12</div>
         </div>
     </div>
 
-    <div class="nav">
-        <div class="nav-item active" onclick="tab('friends', this, '친구')">👤<span>친구</span></div>
-        <div class="nav-item" onclick="tab('chats', this, '채팅')">💬<span>채팅</span></div>
-        <div class="nav-item" onclick="tab('games', this, '게임 제국')">🎮<span>게임</span></div>
+    <div id="chat-window">
+        <div class="chat-header">
+            <span onclick="closeChat()" style="margin-right:15px; cursor:pointer; font-size:1.4rem;">←</span>
+            <b id="chat-user-name" style="flex:1;">이름</b>
+            <div style="display:flex; gap:18px; font-size:1.2rem;">
+                <span onclick="makeCall('video')">📹</span>
+                <span onclick="makeCall('audio')">📞</span>
+                <span>≡</span>
+            </div>
+        </div>
+        <div class="chat-body" id="chat-body">
+            </div>
+        <div id="preview-area">
+            <img id="preview-img" src="">
+            <span onclick="cancelUpload()" style="margin-left:10px; cursor:pointer;">✕</span>
+        </div>
+        <div class="chat-input-bar">
+            <label style="cursor:pointer; font-size:1.4rem;">+<input type="file" style="display:none;" onchange="previewFile(this)"></label>
+            <input type="text" id="chat-input" class="chat-input" placeholder="메시지 입력">
+            <span onclick="sendMsg()" style="font-weight:bold; cursor:pointer;">전송</span>
+        </div>
+    </div>
+
+    <div id="call-overlay">
+        <div style="text-align:center;">
+            <div style="width:110px; height:110px; background:#222; border-radius:40px; margin:0 auto 25px;"></div>
+            <h2 id="call-target">사용자</h2>
+            <p id="call-type" style="color:#666; font-size:0.9rem;">연결 중...</p>
+        </div>
+        <div class="call-btns">
+            <div class="call-circle" style="background:#ff3b30;" onclick="endCall()">✕</div>
+            <div class="call-circle" style="background:#34c759;">📞</div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-tab active" onclick="tab('friends', this, '친구')">👤</div>
+        <div class="nav-tab" onclick="tab('chats', this, '채팅')">💬</div>
+        <div class="nav-tab" onclick="location.reload()">···</div>
     </div>
 </div>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyCPqbKwoAzmi2P_RsIIpV01NKZecoEHPXc",
-        authDomain: "starchet-e9630.firebaseapp.com",
-        databaseURL: "https://starchet-e9630-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "starchet-e9630",
-        storageBucket: "starchet-e9630.firebasestorage.app",
-        messagingSenderId: "532571302538",
-        appId: "1:532571302538:web:788d6bbb75de261502db73"
-    };
+    // 🗝️ 마스터 설정 (비밀번호: 7777)
+    const MASTER_PW = "7777";
+    let myName = "마스터";
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    let myEmoji = "🦁", myChar = "라이언", myId = "";
-    
-    // 💀 보안 시퀀스 변수
-    let l_cnt = 0; 
-    let startTime = Date.now();
-
-    // 로고 3번 클릭 감지
-    function logoClick() {
-        l_cnt++;
-        console.log("시퀀스 진행중: " + l_cnt);
-    }
-
-    function handleLogin() {
-        const now = Date.now();
-        const diff = (now - startTime) / 1000;
-
-        // [핵심 로직] 30초 안에 완료 + 로고 3번 클릭 후 버튼 누르면 어드민!
-        if (diff <= 30 && l_cnt === 3) {
-            document.getElementById('admin-panel').style.display = 'flex';
-            loadAdmin();
-            l_cnt = 0; // 초기화
-            return;
-        }
-
-        // 30초 초과 시 접속 차단
-        if (diff > 30) {
-            alert("보안 세션 만료 (30초 초과). 다시 시도하세요.");
-            location.reload();
-            return;
-        }
-
-        enterEmpire();
-    }
-
-    function selC(el, n, e) {
-        document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active'); myChar = n; myEmoji = e;
-    }
-
-    function enterEmpire() {
-        const nick = document.getElementById('nick').value;
-        if(!nick) return alert("닉네임 미입력!");
-        myId = "user_" + Date.now();
-        db.ref('users/' + myId).set({ nick, emoji: myEmoji, score: 0, status: "제국 시민" }).then(() => {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('my-img').src = `https://via.placeholder.com/52?text=${myEmoji}`;
-            document.getElementById('my-name').innerText = nick;
-            syncRanking();
-        });
-    }
-
-    function syncRanking() {
-        db.ref('users').orderByChild('score').on('value', (snap) => {
-            const list = document.getElementById('rank-list');
-            list.innerHTML = "";
-            let arr = []; snap.forEach(c => { arr.push({id: c.key, ...c.val()}); });
-            arr.reverse().forEach((u, i) => {
-                const is1 = i === 0;
-                const crown = is1 ? '<span class="crown">👑</span>' : `<span style="color:#ccc; width:25px; display:inline-block;">${i+1}</span>`;
-                if(u.id === myId) document.getElementById('my-score').innerText = u.score;
-                list.innerHTML += `<div class="list-item"><div class="rank-badge">${crown}</div><img src="https://via.placeholder.com/52?text=${u.emoji}" class="p-img"><div class="p-info"><b>${u.nick} ${is1 ? '<span style="color:gold; font-size:0.6rem;">[EMPEROR]</span>' : ''}</b><p style="font-size:0.75rem; color:#888;">${u.score}P</p></div></div>`;
-            });
-        });
-    }
-
-    function gameWin(g) {
-        if(confirm(`${g.toUpperCase()} 승리? (+10P)`)) db.ref(`users/${myId}/score`).transaction(s => (s || 0) + 10);
-    }
-
-    function loadAdmin() {
-        db.ref('users').on('value', (snap) => {
-            const area = document.getElementById('admin-users');
-            area.innerHTML = "";
-            snap.forEach(c => {
-                const u = c.val();
-                area.innerHTML += `<div style="padding:10px; border-bottom:1px solid #333;">${u.nick} (${u.score}P) <button onclick="db.ref('users/${c.key}/score').transaction(s=>(s||0)+100)" style="background:#0f0;">+100</button> <button onclick="db.ref('users/${c.key}').remove()" style="background:red;">BAN</button></div>`;
-            });
-        });
-    }
-
-    function tab(id, el, t) {
+    function tab(id, el, title) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(n => n.classList.remove('active'));
         document.getElementById('v-' + id).classList.add('active');
-        el.classList.add('active'); document.getElementById('v-title').innerText = t;
+        el.classList.add('active');
+        document.getElementById('v-title').innerText = title;
     }
+
+    function openChat(name, isGroup = false) {
+        document.getElementById('chat-window').style.display = 'flex';
+        document.getElementById('chat-user-name').innerText = name;
+    }
+
+    function closeChat() { document.getElementById('chat-window').style.display = 'none'; }
+
+    function previewFile(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('preview-img').src = e.target.result;
+                document.getElementById('preview-area').style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function cancelUpload() { document.getElementById('preview-area').style.display = 'none'; }
+
+    function sendMsg() {
+        const val = document.getElementById('chat-input').value;
+        if(!val && document.getElementById('preview-area').style.display === 'none') return;
+        
+        const body = document.getElementById('chat-body');
+        const bubble = document.createElement('div');
+        bubble.className = "bubble bubble-right";
+        bubble.innerText = val;
+        
+        if(document.getElementById('preview-area').style.display === 'block') {
+            const img = document.createElement('img');
+            img.src = document.getElementById('preview-img').src;
+            img.style = "max-width:100%; border-radius:10px; margin-top:5px;";
+            bubble.appendChild(img);
+        }
+
+        body.appendChild(bubble);
+        body.scrollTop = body.scrollHeight;
+        document.getElementById('chat-input').value = "";
+        cancelUpload();
+    }
+
+    function makeCall(type) {
+        document.getElementById('call-overlay').style.display = 'flex';
+        document.getElementById('call-target').innerText = document.getElementById('chat-user-name').innerText;
+        document.getElementById('call-type').innerText = type === 'video' ? '페이스톡 연결 중' : '보이스톡 연결 중';
+    }
+
+    function endCall() { document.getElementById('call-overlay').style.display = 'none'; }
+
+    // 샘플 데이터
+    const fData = [{n:"친구 A", s:"오늘 하루도 화이팅"}, {n:"친구 B", s:"휴가 중입니다"}];
+    document.getElementById('friend-list').innerHTML = fData.map(f => `
+        <div class="profile-item" onclick="openChat('${f.n}')">
+            <div class="p-img-kakao">${f.n[0]}</div>
+            <div class="p-info">
+                <div class="p-name">${f.n}</div>
+                <div class="p-status">${f.s}</div>
+            </div>
+        </div>
+    `).join('');
 </script>
 </body>
 </html>
