@@ -3,203 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StarChat: Master Kakao-Edition</title>
+    <title>StarChat: Master Sequence</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        :root { --kakao-yellow: #fee500; --kakao-brown: #3c1e1e; --bg: #ffffff; --gray: #f2f2f2; --text: #191919; }
-        * { box-sizing: border-box; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--text); }
-        #app { display: flex; flex-direction: column; height: 100vh; max-width: 500px; margin: 0 auto; background: var(--bg); position: relative; }
+        :root { --kakao-yellow: #fee500; --kakao-brown: #3c1e1e; --rank-gold: #ffd700; }
+        * { box-sizing: border-box; font-family: 'Apple SD Gothic Neo', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
+        body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; background: #000; }
+        #app { display: flex; flex-direction: column; height: 100%; max-width: 500px; margin: 0 auto; background: #fff; position: relative; }
 
-        /* 📱 상단 헤더 (카톡 스타일) */
-        .header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: #fff; font-size: 1.4rem; font-weight: bold; }
-        .header-icons { display: flex; gap: 18px; font-size: 1.2rem; cursor: pointer; }
+        /* 🔐 로그인 화면 (보안 강화) */
+        #login-screen { position: fixed; inset: 0; background: var(--kakao-yellow); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
+        .logo { font-size: 3.5rem; font-weight: 900; color: var(--kakao-brown); margin-bottom: 40px; cursor: pointer; user-select: none; }
+        
+        .char-select { display: flex; gap: 10px; margin-bottom: 20px; }
+        .char-btn { width: 75px; height: 95px; background: #fff; border-radius: 15px; border: 3px solid transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+        .char-btn.active { border-color: var(--kakao-brown); transform: scale(1.1); }
+        .login-input { width: 100%; padding: 15px; border-radius: 12px; border: none; margin-bottom: 10px; font-size: 1rem; }
+        .login-submit { width: 100%; padding: 18px; background: var(--kakao-brown); color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
 
-        /* 📑 탭 뷰 */
-        .view { display: none; height: calc(100% - 130px); overflow-y: auto; background: #fff; }
+        /* 📱 메인 UI & 랭킹 */
+        .header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f2f2f2; font-weight: bold; font-size: 1.3rem; }
+        .view { display: none; height: calc(100% - 135px); overflow-y: auto; }
         .view.active { display: block; }
+        .list-item { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #f9f9f9; }
+        .p-img { width: 52px; height: 52px; border-radius: 19px; margin-right: 15px; }
+        .crown { color: var(--rank-gold); font-size: 1.2rem; margin-right: 10px; }
 
-        /* 👤 친구 목록 스타일 */
-        .list-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; transition: 0.2s; }
-        .list-item:active { background: #f5f5f5; }
-        .profile-img { width: 50px; height: 50px; border-radius: 18px; object-fit: cover; background: #eee; margin-right: 15px; border: 1px solid rgba(0,0,0,0.05); }
-        .profile-info { flex: 1; border-bottom: 1px solid #f9f9f9; padding-bottom: 10px; }
-        .profile-name { font-weight: bold; font-size: 1rem; margin-bottom: 3px; }
-        .profile-status { font-size: 0.8rem; color: #888; }
+        /* 🎮 게임 센터 */
+        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
+        .game-card { height: 110px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; cursor: pointer; }
 
-        /* 💬 채팅 목록 스타일 */
-        .chat-preview { font-size: 0.85rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-        .chat-time { font-size: 0.7rem; color: #aaa; margin-left: auto; align-self: flex-start; margin-top: 5px; }
+        /* 📱 하단 네비 */
+        .nav { height: 65px; display: flex; border-top: 1px solid #eee; background: #fff; position: absolute; bottom: 0; width: 100%; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; color: #bbb; cursor: pointer; }
+        .nav-item.active { color: #000; font-weight: bold; }
 
-        /* ➕ 친구 추가 / 방 만들기 모달 */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 7000; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: #fff; width: 100%; max-width: 350px; border-radius: 15px; padding: 25px; }
-        .modal-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 15px 0; outline: none; }
-        .modal-btn { width: 100%; padding: 12px; background: var(--kakao-yellow); border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-
-        /* 🎮 게임 버튼 */
-        .game-tag { background: #f0f0f0; color: #555; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-left: 5px; }
-
-        /* 📱 하단 네비게이션 (카톡과 99% 동일) */
-        .nav { height: 65px; display: flex; border-top: 1px solid #eee; background: #fff; align-items: center; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .nav-item.active { color: #000; }
-        .nav-icon { font-size: 1.5rem; margin-bottom: 2px; color: #bbb; }
-        .active .nav-icon { color: #000; }
-        .nav-text { font-size: 0.7rem; color: #bbb; }
-        .active .nav-text { color: #000; font-weight: bold; }
+        /* 💀 관리자 다크 패널 */
+        #admin-panel { position: fixed; inset: 0; background: #000; color: #0f0; z-index: 10000; display: none; flex-direction: column; padding: 25px; font-family: monospace; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div class="header">
-        <span id="header-title">친구</span>
-        <div class="header-icons">
-            <span onclick="toggleModal('add-friend')">👤+</span>
-            <span onclick="toggleModal('make-room')">💬+</span>
-            <span onclick="lh()">⚙️</span>
+    <div id="login-screen">
+        <div class="logo" onclick="logoClick()">StarChat</div>
+        <div class="char-select">
+            <div class="char-btn active" onclick="selC(this, '라이언', '🦁')"><span>🦁</span>라이언</div>
+            <div class="char-btn" onclick="selC(this, '어피치', '🍑')"><span>🍑</span>어피치</div>
+            <div class="char-btn" onclick="selC(this, '무지', '🐰')"><span>🐰</span>무지</div>
         </div>
+        <input type="text" id="nick" class="login-input" placeholder="마스터 닉네임">
+        <button class="login-submit" onclick="handleLogin()">제국 입장</button>
+    </div>
+
+    <div id="admin-panel">
+        <h3>[EMPEROR ADMIN CONSOLE]</h3>
+        <hr border="1" color="#0f0">
+        <div id="admin-users" style="flex:1; overflow-y:auto; margin:15px 0;"></div>
+        <button onclick="db.ref('users').remove(); location.reload();" style="background:red; color:white; border:none; padding:15px; width:100%;">DB 강제 초기화</button>
+        <button onclick="document.getElementById('admin-panel').style.display='none'" style="margin-top:10px; width:100%;">닫기</button>
+    </div>
+
+    <div class="header">
+        <span id="v-title">친구</span>
+        <div style="display:flex; gap:15px;">🔍 💬+ ⚙️</div>
     </div>
 
     <div class="content" style="flex:1;">
         <div id="v-friends" class="view active">
-            <div class="list-item" onclick="alert('프로필 보기')">
-                <img src="https://via.placeholder.com/100" id="my-p" class="profile-img">
-                <div class="profile-info">
-                    <div class="profile-name">마스터 (나)</div>
-                    <div class="profile-status">제국 건설 중... 🚀</div>
-                </div>
+            <div class="list-item" style="background:#fffaf0;">
+                <img id="my-img" src="" class="p-img" style="background:#eee">
+                <div class="p-info"><b id="my-name">마스터</b><p style="font-size:0.8rem; color:red;">POINT: <span id="my-score">0</span></p></div>
             </div>
-            <div style="padding:10px 20px; font-size:0.75rem; color:#999; background:#f9f9f9;">친구 128</div>
-            <div id="friend-list">
-                <div class="list-item">
-                    <img src="https://via.placeholder.com/100?text=U" class="profile-img">
-                    <div class="profile-info"><div class="profile-name">우노 고수 A <span class="game-tag">게임중</span></div><div class="profile-status">바둑 한 판 하실 분?</div></div>
-                </div>
-            </div>
+            <div style="padding:10px 20px; font-size:0.75rem; color:#999; background:#f9f9f9;">👑 실시간 명예의 전당</div>
+            <div id="rank-list"></div>
         </div>
 
         <div id="v-chats" class="view">
-            <div id="chat-list">
-                <div class="list-item" onclick="alert('채팅방 입장')">
-                    <img src="https://via.placeholder.com/100?text=G" class="profile-img">
-                    <div class="profile-info">
-                        <div class="profile-name">전국 우노 단톡방 <span style="color:#aaa; font-weight:normal;">12</span></div>
-                        <div class="chat-preview">마스터: 1번 드로우 후 턴 넘기기 규칙 아시죠?</div>
-                    </div>
-                    <div class="chat-time">오후 4:21</div>
-                </div>
-                <div class="list-item" onclick="alert('오픈채팅 입장')">
-                    <img src="https://via.placeholder.com/100?text=OPEN" class="profile-img" style="border: 2px solid #ffeb33;">
-                    <div class="profile-info">
-                        <div class="profile-name">📣 [오픈] 바둑/오목 24시간 매칭방</div>
-                        <div class="chat-preview">매너 게임 부탁드립니다. 체크메이트 시 기권 필수!</div>
-                    </div>
-                    <div class="chat-time">어제</div>
-                </div>
+            <div class="list-item">
+                <img src="https://via.placeholder.com/52?text=OPEN" class="p-img" style="border:2px solid gold;">
+                <div class="p-info"><b>🌐 전세계 통합 오픈채팅</b><p style="font-size:0.8rem; color:#888;">매너 게임 부탁드립니다.</p></div>
             </div>
         </div>
 
         <div id="v-games" class="view">
-            <div style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                <div style="background:#ff4444; color:#fff; padding:35px 10px; border-radius:20px; text-align:center; font-weight:bold;" onclick="alert('우노 실행')">🃏 무한 우노</div>
-                <div style="background:#e3a857; color:#000; padding:35px 10px; border-radius:20px; text-align:center; font-weight:bold;" onclick="alert('바둑/오목 실행')">⚫ 바둑/오목</div>
-                <div style="background:#333; color:#fff; padding:35px 10px; border-radius:20px; text-align:center; font-weight:bold;" onclick="alert('빙고 실행')">🔢 숫자 빙고</div>
-                <div style="background:#7f8c8d; color:#fff; padding:35px 10px; border-radius:20px; text-align:center; font-weight:bold;" onclick="alert('체스 실행')">♟️ 체스</div>
+            <div class="game-grid">
+                <div class="game-card" style="background:#ff4444;" onclick="gameWin('uno')">🃏 우노 (1번 드로우)</div>
+                <div class="game-card" style="background:#e3a857; color:#000;" onclick="gameWin('baduk')">⚫ 바둑/오목</div>
+                <div class="game-card" style="background:#7f8c8d;" onclick="gameWin('chess')">♟️ 체스</div>
+                <div class="game-card" style="background:#3498db;" onclick="gameWin('bingo')">🔢 숫자 빙고</div>
             </div>
         </div>
     </div>
 
     <div class="nav">
-        <div class="nav-item active" onclick="tab('friends', this, '친구')">
-            <span class="nav-icon">👤</span><span class="nav-text">친구</span>
-        </div>
-        <div class="nav-item" onclick="tab('chats', this, '채팅')">
-            <span class="nav-icon">💬</span><span class="nav-text">채팅</span>
-        </div>
-        <div class="nav-item" onclick="tab('games', this, '게임 제국')">
-            <span class="nav-icon">🎮</span><span class="nav-text">게임</span>
-        </div>
-        <div class="nav-item" onclick="alert('VOD 서비스')">
-            <span class="nav-icon">🎥</span><span class="nav-text">VOD</span>
-        </div>
+        <div class="nav-item active" onclick="tab('friends', this, '친구')">👤<span>친구</span></div>
+        <div class="nav-item" onclick="tab('chats', this, '채팅')">💬<span>채팅</span></div>
+        <div class="nav-item" onclick="tab('games', this, '게임 제국')">🎮<span>게임</span></div>
     </div>
-
-    <div id="modal-add-friend" class="modal">
-        <div class="modal-content">
-            <h3>친구 추가</h3>
-            <p style="font-size:0.8rem; color:#888;">상대방의 마스터 ID를 입력하세요.</p>
-            <input type="text" id="friend-id" class="modal-input" placeholder="ID 입력">
-            <button class="modal-btn" onclick="addFriend()">친구 추가하기</button>
-            <button onclick="toggleModal('add-friend')" style="width:100%; background:none; border:none; margin-top:10px; color:#aaa;">취소</button>
-        </div>
-    </div>
-
-    <div id="modal-make-room" class="modal">
-        <div class="modal-content">
-            <h3>새로운 채팅방</h3>
-            <p style="font-size:0.8rem; color:#888;">채팅방 이름을 정해주세요.</p>
-            <input type="text" id="room-name" class="modal-input" placeholder="방 이름 입력">
-            <button class="modal-btn" onclick="makeRoom()">채팅방 만들기</button>
-            <button onclick="toggleModal('make-room')" style="width:100%; background:none; border:none; margin-top:10px; color:#aaa;">취소</button>
-        </div>
-    </div>
-
 </div>
 
 <script>
-    let l_h=0;
-    function lh() { l_h++; if(l_h===3) alert("어드민 모드 진입 성공! (로그인 3번 남음)"); }
+    const firebaseConfig = {
+        apiKey: "AIzaSyCPqbKwoAzmi2P_RsIIpV01NKZecoEHPXc",
+        authDomain: "starchet-e9630.firebaseapp.com",
+        databaseURL: "https://starchet-e9630-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "starchet-e9630",
+        storageBucket: "starchet-e9630.firebasestorage.app",
+        messagingSenderId: "532571302538",
+        appId: "1:532571302538:web:788d6bbb75de261502db73"
+    };
 
-    // 탭 전환
-    function tab(id, el, title) {
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    let myEmoji = "🦁", myChar = "라이언", myId = "";
+    
+    // 💀 보안 시퀀스 변수
+    let l_cnt = 0; 
+    let startTime = Date.now();
+
+    // 로고 3번 클릭 감지
+    function logoClick() {
+        l_cnt++;
+        console.log("시퀀스 진행중: " + l_cnt);
+    }
+
+    function handleLogin() {
+        const now = Date.now();
+        const diff = (now - startTime) / 1000;
+
+        // [핵심 로직] 30초 안에 완료 + 로고 3번 클릭 후 버튼 누르면 어드민!
+        if (diff <= 30 && l_cnt === 3) {
+            document.getElementById('admin-panel').style.display = 'flex';
+            loadAdmin();
+            l_cnt = 0; // 초기화
+            return;
+        }
+
+        // 30초 초과 시 접속 차단
+        if (diff > 30) {
+            alert("보안 세션 만료 (30초 초과). 다시 시도하세요.");
+            location.reload();
+            return;
+        }
+
+        enterEmpire();
+    }
+
+    function selC(el, n, e) {
+        document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active'); myChar = n; myEmoji = e;
+    }
+
+    function enterEmpire() {
+        const nick = document.getElementById('nick').value;
+        if(!nick) return alert("닉네임 미입력!");
+        myId = "user_" + Date.now();
+        db.ref('users/' + myId).set({ nick, emoji: myEmoji, score: 0, status: "제국 시민" }).then(() => {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('my-img').src = `https://via.placeholder.com/52?text=${myEmoji}`;
+            document.getElementById('my-name').innerText = nick;
+            syncRanking();
+        });
+    }
+
+    function syncRanking() {
+        db.ref('users').orderByChild('score').on('value', (snap) => {
+            const list = document.getElementById('rank-list');
+            list.innerHTML = "";
+            let arr = []; snap.forEach(c => { arr.push({id: c.key, ...c.val()}); });
+            arr.reverse().forEach((u, i) => {
+                const is1 = i === 0;
+                const crown = is1 ? '<span class="crown">👑</span>' : `<span style="color:#ccc; width:25px; display:inline-block;">${i+1}</span>`;
+                if(u.id === myId) document.getElementById('my-score').innerText = u.score;
+                list.innerHTML += `<div class="list-item"><div class="rank-badge">${crown}</div><img src="https://via.placeholder.com/52?text=${u.emoji}" class="p-img"><div class="p-info"><b>${u.nick} ${is1 ? '<span style="color:gold; font-size:0.6rem;">[EMPEROR]</span>' : ''}</b><p style="font-size:0.75rem; color:#888;">${u.score}P</p></div></div>`;
+            });
+        });
+    }
+
+    function gameWin(g) {
+        if(confirm(`${g.toUpperCase()} 승리? (+10P)`)) db.ref(`users/${myId}/score`).transaction(s => (s || 0) + 10);
+    }
+
+    function loadAdmin() {
+        db.ref('users').on('value', (snap) => {
+            const area = document.getElementById('admin-users');
+            area.innerHTML = "";
+            snap.forEach(c => {
+                const u = c.val();
+                area.innerHTML += `<div style="padding:10px; border-bottom:1px solid #333;">${u.nick} (${u.score}P) <button onclick="db.ref('users/${c.key}/score').transaction(s=>(s||0)+100)" style="background:#0f0;">+100</button> <button onclick="db.ref('users/${c.key}').remove()" style="background:red;">BAN</button></div>`;
+            });
+        });
+    }
+
+    function tab(id, el, t) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById('v-' + id).classList.add('active');
-        el.classList.add('active');
-        document.getElementById('header-title').innerText = title;
-    }
-
-    // 모달 제어
-    function toggleModal(id) {
-        const m = document.getElementById('modal-' + id);
-        m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
-    }
-
-    // [친구 추가] 기능
-    function addFriend() {
-        const id = document.getElementById('friend-id').value;
-        if(!id) return;
-        const list = document.getElementById('friend-list');
-        const newItem = document.createElement('div');
-        newItem.className = 'list-item';
-        newItem.innerHTML = `
-            <img src="https://via.placeholder.com/100?text=${id[0]}" class="profile-img">
-            <div class="profile-info"><div class="profile-name">${id}</div><div class="profile-status">새로운 친구가 되었습니다!</div></div>
-        `;
-        list.prepend(newItem);
-        alert(`${id}님을 친구 목록에 추가했습니다!`);
-        toggleModal('add-friend');
-    }
-
-    // [방 만들기] 기능
-    function makeRoom() {
-        const name = document.getElementById('room-name').value;
-        if(!name) return;
-        const list = document.getElementById('chat-list');
-        const newItem = document.createElement('div');
-        newItem.className = 'list-item';
-        newItem.innerHTML = `
-            <img src="https://via.placeholder.com/100?text=NEW" class="profile-img">
-            <div class="profile-info">
-                <div class="profile-name">${name}</div>
-                <div class="chat-preview">새로운 채팅방이 생성되었습니다.</div>
-            </div>
-            <div class="chat-time">방금</div>
-        `;
-        list.prepend(newItem);
-        alert(`'${name}' 방이 성공적으로 생성되었습니다!`);
-        toggleModal('make-room');
+        el.classList.add('active'); document.getElementById('v-title').innerText = t;
     }
 </script>
 </body>
