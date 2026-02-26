@@ -3,181 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StarChat Master Edition</title>
+    <title>스타챗 (StarChat)</title>
     
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.swing2app.co.kr/public/js/swing_app_interface.js"></script>
-
     <style>
-        :root { --main: #ffca28; --bg: #121212; --nav: #1e1e1e; --edge: #00f2fe; --danger: #ff5252; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; }
+        :root { --main: #ffca28; --bg: #ffffff; --text: #000000; --gray: #f2f2f2; --edge: #00f2fe; --card: #1e1e1e; }
+        body, html { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; height: 100%; overflow: hidden; }
         #app { display: flex; flex-direction: column; height: 100vh; max-width: 500px; margin: 0 auto; position: relative; }
 
-        /* ✨ 삼성 엣지 라이팅 효과 */
-        .edge-glow { border: 3px solid var(--edge) !important; box-shadow: inset 0 0 25px var(--edge) !important; }
-        .edge-alert { border: 3px solid var(--danger) !important; box-shadow: inset 0 0 25px var(--danger) !important; }
+        /* ✨ 엣지 라이팅 (게임 승리/알림 효과) */
+        .edge-glow { border: 4px solid var(--edge) !important; box-shadow: inset 0 0 20px var(--edge) !important; }
 
-        /* 상단 바 (카톡 스타일) */
-        .header { padding: 15px; background: var(--nav); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
-        .header-icons { display: flex; gap: 15px; }
+        .header { padding: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid var(--gray); background: white; z-index: 10; }
+        .content { flex: 1; overflow-y: auto; background: white; }
+        .view { display: none; height: 100%; }
+        .view.active { display: block; }
 
-        /* 컨텐츠 구역 */
-        .content { flex: 1; display: none; overflow-y: auto; padding-bottom: 120px; }
-        .content.active { display: block; }
+        /* 👤 카톡형 프로필 & 친구 목록 */
+        .profile-row { display: flex; align-items: center; padding: 15px; cursor: pointer; border-bottom: 1px solid #f9f9f9; }
+        .avatar { width: 50px; height: 50px; border-radius: 18px; background: #eee; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 1px solid #ddd; }
 
-        /* 1. 내 프로필 탭 */
-        .profile-section { padding: 20px; text-align: center; border-bottom: 1px solid #333; }
-        .profile-img { width: 80px; height: 80px; background: #444; border-radius: 30px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; border: 2px solid var(--main); }
-        .status-msg { color: #aaa; font-size: 0.9rem; margin-top: 5px; }
+        /* 🎮 게임 센터 (핵심!) */
+        .game-header { background: var(--card); color: white; padding: 20px; border-radius: 20px; margin: 15px; text-align: center; }
+        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
+        .game-card { background: var(--gray); padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .game-card:active { border-color: var(--main); background: #e0e0e0; }
+        .game-card span { display: block; font-size: 2.5rem; margin-bottom: 10px; }
 
-        /* 2. 채팅 탭 */
-        #chat-box { padding: 15px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
-        .msg { padding: 8px 12px; border-radius: 15px; max-width: 70%; font-size: 0.95rem; line-height: 1.4; }
-        .msg.me { align-self: flex-end; background: var(--main); color: black; }
-        .msg.other { align-self: flex-start; background: #333; color: white; }
+        /* 🃏 실제 게임 화면 (우노/대결 모드) */
+        #game-play { position: fixed; inset: 0; background: #0b3d0b; z-index: 3000; display: none; flex-direction: column; color: white; padding: 20px; }
+        .card-area { flex: 1; display: flex; flex-direction: column; justify-content: space-around; align-items: center; }
+        .opp-card { width: 60px; height: 90px; background: #c0392b; border: 2px solid white; border-radius: 5px; margin: 5px; }
+        .my-hand { display: flex; gap: 10px; overflow-x: auto; padding: 10px; width: 100%; }
+        .uno-card { width: 70px; height: 110px; border-radius: 8px; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.5rem; flex-shrink: 0; cursor: pointer; }
 
-        /* 3. 게임 센터 탭 */
-        .game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; }
-        .game-card { background: #2d2d2d; padding: 25px 10px; border-radius: 15px; text-align: center; border: 1px solid #444; position: relative; }
-        .crown { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; }
+        /* 🎭 캐릭터 꾸미기 (프로필 내 진입) */
+        #profile-detail { position: fixed; inset: 0; background: rgba(0,0,0,0.9); color: white; z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .deco-item { width: 55px; height: 55px; background: #333; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; border: 2px solid transparent; }
+        .deco-item.selected { border-color: var(--main); }
 
-        /* 하단 네비게이션 */
-        .bottom-nav { position: absolute; bottom: 0; width: 100%; display: flex; background: var(--nav); height: 65px; border-top: 1px solid #333; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; color: #888; cursor: pointer; }
-        .nav-item.active { color: var(--main); }
-
-        /* 입력바 */
-        .input-bar { position: absolute; bottom: 65px; width: 100%; display: flex; padding: 10px; background: #1e1e1e; box-sizing: border-box; }
-        input { flex: 1; border: none; border-radius: 20px; padding: 10px 15px; background: #333; color: white; outline: none; }
+        /* 📱 하단 네비 */
+        .nav { height: 60px; display: flex; border-top: 1px solid var(--gray); background: #f9f9f9; }
+        .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; color: #666; }
+        .nav-tab.active { color: #000; font-weight: bold; }
     </style>
 </head>
 <body id="main-body">
 
 <div id="app">
     <div class="header">
-        <span id="header-title" style="font-weight:bold; font-size:1.1rem;">채팅</span>
-        <div class="header-icons">
-            <span onclick="startCall('voice')" style="cursor:pointer;">📞</span>
-            <span onclick="startCall('video')" style="cursor:pointer;">📹</span>
-            <span onclick="initPush()" style="cursor:pointer;">🔔</span>
-            <span onclick="blockDone()" style="color:var(--danger); cursor:pointer;">🚫</span>
-        </div>
+        <span id="title">스타챗</span>
+        <div style="font-size:1.3rem;">🔍 🔔 ⚙️</div>
     </div>
 
-    <div id="tab-profile" class="content">
-        <div class="profile-section">
-            <div class="profile-img">👑</div>
-            <div style="font-size:1.2rem; font-weight:bold;">슈퍼마스터</div>
-            <div class="status-msg">"우노 +2, +4 반사 대환영"</div>
-        </div>
-        <div style="padding:15px;">
-            <div style="color:#888; font-size:0.8rem; margin-bottom:10px;">내 연락처</div>
-            <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #222;">
-                <span>👤 가명유저_A</span> <button style="background:none; color:var(--main); border:1px solid; border-radius:5px; font-size:0.7rem;">대화</button>
+    <div class="content">
+        <div id="tab-friends" class="view active">
+            <div class="profile-row" onclick="toggleProfile()">
+                <div class="avatar" id="my-ava">🤴</div>
+                <div class="profile-info"><b>마스터 (나)</b><p>캐릭터 꾸미기 터치</p></div>
             </div>
-            <div style="display:flex; justify-content:space-between; padding:10px 0;">
-                <span>🥇 랭킹 1위: 슈퍼마스터</span> <span>2,500pt</span>
+            <div style="padding:15px; font-size:0.8rem; color:#888;">친구 목록</div>
+            <div class="profile-row">
+                <div class="avatar">🤖</div><div><b>AI 봇</b><p>우노 한판 어때요?</p></div>
             </div>
         </div>
-    </div>
 
-    <div id="tab-chat" class="content active">
-        <div id="chat-box">
-            <div style="text-align:center; color:#555; font-size:0.7rem; margin-bottom:15px;">🛡️ 1개월간의 대화만 보관되며, 보안이 적용됨</div>
-        </div>
-        <div class="input-bar">
-            <input type="text" id="chat-input" placeholder="메시지 입력..." onkeypress="if(event.keyCode==13) sendMsg()">
-            <button onclick="sendMsg()" style="background:var(--main); border:none; border-radius:50%; width:40px; height:40px; margin-left:5px;">▲</button>
-        </div>
-    </div>
-
-    <div id="tab-game" class="content">
-        <div class="game-grid">
-            <div class="game-card" onclick="playUno()"><div class="crown">👑</div>🃏 우노 (반사)</div>
-            <div class="game-card" onclick="alert('체스 보이스 연결')"><div class="crown">👑</div>♟️ 체스</div>
-            <div class="game-card">⚪ 오목</div>
-            <div class="game-card">⚫ 바둑</div>
-            <div class="game-card">🔢 빙고</div>
-            <div class="game-card">🤖 AI 대전</div>
+        <div id="tab-game" class="view">
+            <div class="game-header">
+                <h2 style="margin:0;">Star Tournament</h2>
+                <p style="font-size:0.8rem; color:var(--main);">매주 토요일 랜덤 매칭 대회</p>
+            </div>
+            <div class="game-grid">
+                <div class="game-card" onclick="openGame('🃏 우노')"><span>🃏</span>우노 매칭</div>
+                <div class="game-card" onclick="openGame('♟️ 체스')"><span>♟️</span>체스 매칭</div>
+                <div class="game-card" onclick="openGame('🎮 랜덤')"><span>⚔️</span>랜덤 PvP</div>
+                <div class="game-card" onclick="alert('친구 초대 중...')"><span>👥</span>친구와 대결</div>
+            </div>
+            <div style="padding:15px;">
+                <h4 style="margin-bottom:10px;">🎥 1개월 다시보기</h4>
+                <div style="background:#f2f2f2; padding:10px; border-radius:10px; font-size:0.8rem;">
+                    [우노] 마스터 vs 유저_K (승리) <button style="float:right;">보기</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="bottom-nav">
-        <div class="nav-item" onclick="tab('profile')">👤 프로필</div>
-        <div class="nav-item active" onclick="tab('chat')">💬 채팅</div>
-        <div class="nav-item" onclick="tab('game')">🎮 게임</div>
+    <div id="profile-detail">
+        <span onclick="toggleProfile()" style="position:absolute; top:20px; right:25px; font-size:2rem;">×</span>
+        <div id="preview-ava" style="font-size:5rem; margin-bottom:30px; background:white; width:120px; height:120px; border-radius:40px; display:flex; align-items:center; justify-content:center;">🤴</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:40px;">
+            <div class="deco-item" onclick="changeAva('🤴')">🤴</div>
+            <div class="deco-item" onclick="changeAva('🥷')">🥷</div>
+            <div class="deco-item" onclick="changeAva('🧙')">🧙</div>
+            <div class="deco-item" onclick="changeAva('🦁')">🦁</div>
+            <div class="deco-item" onclick="changeAva('🦊')">🦊</div>
+            <div class="deco-item" onclick="changeAva('🤖')">🤖</div>
+            <div class="deco-item" onclick="changeAva('🧑‍🚀')">🧑‍🚀</div>
+            <div class="deco-item" onclick="changeAva('🤡')">🤡</div>
+        </div>
+        <div style="display:flex; gap:40px;">
+            <div onclick="alert('다자간 전화')">📞</div><div onclick="alert('그룹 영통')">📹</div><div onclick="alert('채팅')">💬</div>
+        </div>
+    </div>
+
+    <div id="game-play">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span id="game-title">🃏 우노 토너먼트</span>
+            <button onclick="closeGame()" style="background:none; border:none; color:white; font-size:1.5rem;">×</button>
+        </div>
+        <div class="card-area">
+            <div style="text-align:center;"><div class="opp-card"></div>상대방 카드 (7장)</div>
+            <div style="width:120px; height:120px; border:4px solid var(--main); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2rem; background:#222;">
+                8 <span style="color:red; margin-left:5px;">❤️</span>
+            </div>
+            <div style="text-align:center;">내 카드 (남은 시간: 12초)</div>
+        </div>
+        <div class="my-hand">
+            <div class="uno-card" style="background:#e74c3c;" onclick="useCard()">3</div>
+            <div class="uno-card" style="background:#3498db;" onclick="useCard()">반사</div>
+            <div class="uno-card" style="background:#f1c40f; color:black;" onclick="useCard()">+4</div>
+            <div class="uno-card" style="background:#2ecc71;" onclick="useCard()">7</div>
+        </div>
+    </div>
+
+    <div class="nav">
+        <div class="nav-tab active" onclick="showTab('friends')">👤 친구</div>
+        <div class="nav-tab" onclick="showTab('game')">🎮 게임</div>
+        <div class="nav-tab" onclick="alert('알림')">🔔 알림</div>
+        <div class="nav-tab" onclick="showTab('game')">🎥 VOD</div>
     </div>
 </div>
 
 <script>
-    // 탭 전환
-    function tab(id) {
-        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    function showTab(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
         document.getElementById('tab-' + id).classList.add('active');
         event.currentTarget.classList.add('active');
-        
-        const titles = {'profile': '더보기', 'chat': '채팅', 'game': '게임 센터'};
-        document.getElementById('header-title').innerText = titles[id];
     }
 
-    // 우노 리벤지 룰 (+2, +4 반사)
-    let attackStack = 0;
-    function playUno() {
-        let card = prompt("+2 또는 +4로 반사하시겠습니까?");
-        if(card === '+2' || card === '+4') {
-            attackStack += parseInt(card);
-            triggerEdge('danger');
-            sendPush("우노 공격!", "상대가 반사했습니다! 누적: " + attackStack);
-            alert("공격 반사 성공! 누적 " + attackStack + "장!");
-        } else { alert("게임 보이스 채널에 연결되었습니다."); }
+    function toggleProfile() {
+        const p = document.getElementById('profile-detail');
+        p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
     }
 
-    // 메시지 & 스윙투앱 푸시 발송
-    function sendMsg() {
-        const input = document.getElementById('chat-input');
-        if(!input.value) return;
-        triggerEdge('normal');
-        sendPush("StarChat", "마스터: " + input.value);
-        const div = document.createElement('div');
-        div.className = 'msg me';
-        div.innerText = input.value;
-        document.getElementById('chat-box').appendChild(div);
-        input.value = '';
+    function changeAva(emoji) {
+        document.getElementById('preview-ava').innerText = emoji;
+        document.getElementById('my-ava').innerText = emoji;
+        const b = document.getElementById('main-body');
+        b.classList.add('edge-glow');
+        setTimeout(() => b.classList.remove('edge-glow'), 1000);
     }
 
-    // 삼성 엣지 라이팅
-    function triggerEdge(type) {
-        const body = document.getElementById('main-body');
-        const cls = (type === 'danger') ? 'edge-danger' : 'edge-glow';
-        body.classList.add(cls);
-        setTimeout(() => body.classList.remove(cls), 1500);
+    function openGame(title) {
+        document.getElementById('game-title').innerText = title;
+        document.getElementById('game-play').style.display = 'flex';
     }
 
-    function sendPush(title, body) {
-        if (typeof swingWebViewInterface !== "undefined") {
-            swingWebViewInterface.sendPushNotification({ title, body });
-        }
+    function closeGame() {
+        document.getElementById('game-play').style.display = 'none';
     }
 
-    function initPush() {
-        if (typeof swingWebViewInterface !== "undefined") {
-            swingWebViewInterface.requestPushToken();
-            alert("푸시 알림이 활성화되었습니다.");
-        }
-    }
-
-    function startCall(type) {
-        triggerEdge('normal');
-        alert(type === 'video' ? "영상통화 연결..." : "음성전화 연결...");
-    }
-
-    function blockDone() {
-        if(confirm("이 방을 차단 완료하시겠습니까?")) {
-            alert("차단 완료!");
-            document.body.innerHTML = "<h2 style='color:white; text-align:center; padding-top:50%;'>🚫 차단된 방입니다</h2>";
-        }
+    function useCard() {
+        alert("카드를 냈습니다! (상대방 턴 대기 중...)");
+        const b = document.getElementById('main-body');
+        b.classList.add('edge-glow');
+        setTimeout(() => b.classList.remove('edge-glow'), 800);
     }
 </script>
 </body>
