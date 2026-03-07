@@ -2,192 +2,53 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StarTalk Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StarTalk Login</title>
     <style>
-        :root { --k-yellow: #FEE500; --k-blue: #BACEE0; --k-brown: #3C3E3F; }
-        body { font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; background-color: var(--k-blue); height: 100vh; overflow: hidden; }
-
-        /* 로딩 화면 */
-        #loading-screen { position: fixed; inset: 0; background: var(--k-yellow); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .spinner { width: 50px; height: 50px; border: 5px solid white; border-top-color: var(--k-brown); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* 화면 전환 */
-        .screen { display: none; height: 100vh; flex-direction: column; }
-        .active { display: flex; }
-
-        /* 로그인 UI */
-        .login-box { width: 80%; max-width: 320px; display: flex; flex-direction: column; gap: 10px; text-align: center; }
-        .login-box input { padding: 12px; border: none; border-radius: 5px; }
-        .btn-main { padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-
-        /* 메인/채팅 UI */
-        header { background: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
-        #friends-list { background: white; flex: 1; overflow-y: auto; }
-        .item { padding: 12px 15px; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
-        .profile { width: 45px; height: 45px; border-radius: 18px; background: #eee; margin-right: 12px; }
-
-        /* 채팅 레이어 */
-        #chat-layer { display: none; position: fixed; inset: 0; background: var(--k-blue); flex-direction: column; z-index: 100; }
-        #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .bubble { padding: 8px 12px; border-radius: 10px; font-size: 14px; max-width: 70%; line-height: 1.4; position: relative; }
-        .me { align-self: flex-end; background: var(--k-yellow); border-top-right-radius: 0; }
-        .other { align-self: flex-start; background: white; border-top-left-radius: 0; }
-        .trans { display: block; font-size: 11px; color: #666; margin-top: 4px; border-top: 1px dashed #ccc; padding-top: 4px; }
-
-        /* 하단바 */
-        .footer { background: white; padding: 10px; display: flex; gap: 8px; }
-        #msg-input { flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 20px; outline: none; }
+        body { background: #FEE500; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .google-btn { padding: 15px 25px; border: 1px solid #ddd; border-radius: 5px; background: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; }
     </style>
 </head>
 <body>
 
-<div id="loading-screen">
-    <div class="spinner"></div>
-    <p style="margin-top:15px; font-weight:bold;">인증 확인 중...</p>
-</div>
-
-<div id="login-screen" class="screen" style="background: var(--k-yellow); justify-content: center; align-items: center;">
-    <div class="login-box">
-        <h1 style="color: var(--k-brown)">StarTalk</h1>
-        <button onclick="loginWithGoogle()" style="padding:15px; background:white; border:1px solid #ddd; border-radius:5px; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer;">
-            <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="20"> Google 로그인
+    <div id="auth-box" class="login-card">
+        <h1>StarTalk</h1>
+        <button class="google-btn" onclick="googleLogin()">
+            <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="20">
+            Google로 시작하기
         </button>
-        <div style="margin:10px 0; font-size:12px; color:#888;">또는</div>
-        <input type="email" id="email" placeholder="이메일">
-        <input type="password" id="pw" placeholder="비밀번호">
-        <button class="btn-main" onclick="authAction('login')" style="background:var(--k-brown); color:white;">로그인</button>
-        <button onclick="authAction('signup')" style="background:none; border:none; color:#555; font-size:12px;">이메일 회원가입</button>
     </div>
-</div>
 
-<div id="main-screen" class="screen">
-    <header>
-        <span id="my-id">StarTalk</span>
-        <button style="border:none; background:none; font-size:20px;" onclick="addFriend()">➕</button>
-    </header>
-    <div id="friends-list"></div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    <div id="chat-layer">
-        <header>
-            <span onclick="closeChat()" style="cursor:pointer;">←</span>
-            <span id="chat-target">상대방</span>
-            <span></span>
-        </header>
-        <div id="chat-window"></div>
-        <div class="footer">
-            <input type="text" id="msg-input" placeholder="메시지 입력..." onkeypress="if(event.keyCode==13) sendMsg()">
-            <button onclick="sendMsg()" style="background:var(--k-yellow); border:none; padding:10px 15px; border-radius:5px; font-weight:bold;">전송</button>
-        </div>
-    </div>
-</div>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC_PPRBwcwpy-3qmO3XgNGFuJy19QJkT6Y",
+            authDomain: "star1-e9870.firebaseapp.com",
+            projectId: "star1-e9870",
+            appId: "1:849251951961:web:25275d26040f704e7b1848"
+        };
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
-    // star1-e9870 설정
-    const firebaseConfig = {
-        apiKey: "AIzaSyC_PPRBwcwpy-3qmO3XgNGFuJy19QJkT6Y",
-        authDomain: "star1-e9870.firebaseapp.com",
-        databaseURL: "https://star1-e9870-default-rtdb.firebaseio.com",
-        projectId: "star1-e9870",
-        storageBucket: "star1-e9870.firebasestorage.app",
-        messagingSenderId: "849251951961",
-        appId: "1:849251951961:web:25275d26040f704e7b1848"
-    };
+        window.googleLogin = () => {
+            signInWithPopup(auth, provider)
+                .then((result) => alert(result.user.displayName + "님 환영합니다!"))
+                .catch((error) => alert("에러: " + error.message));
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-    const provider = new GoogleAuthProvider();
-    let userNow = null;
-
-    // 인증 상태 감시 (핵심: 로딩 제어)
-    onAuthStateChanged(auth, (user) => {
-        const loader = document.getElementById('loading-screen');
-        const loginScr = document.getElementById('login-screen');
-        const mainScr = document.getElementById('main-screen');
-
-        if (user) {
-            userNow = user;
-            loginScr.classList.remove('active');
-            mainScr.classList.add('active');
-            document.getElementById('my-id').innerText = user.displayName || user.email.split('@')[0];
-            loadFriends();
-        } else {
-            loginScr.classList.add('active');
-            mainScr.classList.remove('active');
-        }
-        // 인증 확인 후 로딩 화면 제거
-        loader.style.display = 'none';
-    });
-
-    window.loginWithGoogle = () => signInWithPopup(auth, provider).catch(e => alert(e.message));
-
-    window.authAction = (type) => {
-        const em = document.getElementById('email').value;
-        const ps = document.getElementById('pw').value;
-        if(type === 'login') signInWithEmailAndPassword(auth, em, ps).catch(e => alert(e.message));
-        else createUserWithEmailAndPassword(auth, em, ps).catch(e => alert(e.message));
-    };
-
-    window.addFriend = () => {
-        const fEmail = prompt("친구 이메일 입력:");
-        if(fEmail) push(ref(db, `users/${userNow.uid}/friends`), { email: fEmail });
-    };
-
-    function loadFriends() {
-        const listDiv = document.getElementById('friends-list');
-        listDiv.innerHTML = "";
-        onChildAdded(ref(db, `users/${userNow.uid}/friends`), (snap) => {
-            const f = snap.val();
-            const div = document.createElement('div');
-            div.className = 'item';
-            div.innerHTML = `<div class="profile"></div><div>${f.email.split('@')[0]}</div>`;
-            div.onclick = () => openChat(f.email);
-            listDiv.appendChild(div);
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-box').innerHTML = `
+                    <h2>${user.displayName}님 로그인 성공!</h2>
+                    <p>이제 채팅을 시작할 수 있습니다.</p>
+                `;
+            }
         });
-    }
-
-    window.openChat = (targetEmail) => {
-        const layer = document.getElementById('chat-layer');
-        const win = document.getElementById('chat-window');
-        layer.style.display = 'flex';
-        document.getElementById('chat-target').innerText = targetEmail.split('@')[0];
-        win.innerHTML = "";
-        
-        const roomID = [userNow.email.split('@')[0], targetEmail.split('@')[0]].sort().join('_');
-        onChildAdded(ref(db, `rooms/${roomID}`), (snap) => {
-            const data = snap.val();
-            const isMe = data.sender === userNow.email.split('@')[0];
-            const div = document.createElement('div');
-            div.className = `bubble ${isMe ? 'me' : 'other'}`;
-            div.innerHTML = `${data.text} ${data.trans ? `<span class="trans">${data.trans}</span>` : ''}`;
-            win.appendChild(div);
-            win.scrollTop = win.scrollHeight;
-        });
-    };
-
-    window.closeChat = () => document.getElementById('chat-layer').style.display = 'none';
-
-    window.sendMsg = () => {
-        const input = document.getElementById('msg-input');
-        if(!input.value) return;
-        const target = document.getElementById('chat-target').innerText;
-        const roomID = [userNow.email.split('@')[0], target].sort().join('_');
-        
-        let trans = input.value.includes("안녕") ? "Hello" : "";
-        push(ref(db, `rooms/${roomID}`), {
-            sender: userNow.email.split('@')[0],
-            text: input.value,
-            trans: trans
-        });
-        input.value = "";
-    };
-</script>
-
+    </script>
 </body>
 </html>
