@@ -6,18 +6,20 @@
     <title>StarTalk Pro</title>
     <style>
         :root { --k-yellow: #FEE500; --k-blue: #BACEE0; --k-brown: #3C3E3F; }
-        body { font-family: sans-serif; margin: 0; background-color: var(--k-blue); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; background-color: var(--k-blue); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
         /* 화면 전환 */
         .screen { display: none; height: 100vh; flex-direction: column; }
         .active { display: flex; }
 
-        /* 헤더 & 리스트 */
+        /* 헤더 */
         header { background: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
         .item { background: white; padding: 12px 15px; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
-        .profile { width: 45px; height: 45px; border-radius: 18px; background: #eee; margin-right: 12px; }
+        .profile { width: 45px; height: 45px; border-radius: 18px; background: #eee; margin-right: 12px; overflow: hidden; }
+        .profile img { width: 100%; height: 100%; object-fit: cover; }
 
         /* 채팅창 */
+        #chat-layer { display:none; position:fixed; inset:0; background:var(--k-blue); flex-direction:column; z-index:100; }
         #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .bubble { padding: 8px 12px; border-radius: 10px; font-size: 14px; max-width: 70%; line-height: 1.4; position: relative; }
         .me { align-self: flex-end; background: var(--k-yellow); border-top-right-radius: 0; }
@@ -32,41 +34,49 @@
         /* 하단 입력바 */
         .footer { background: white; padding: 10px; display: flex; align-items: center; gap: 8px; }
         #msg-input { flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 20px; outline: none; }
+        .btn-icon { background:none; border:none; font-size:20px; cursor:pointer; }
     </style>
 </head>
 <body>
 
 <div id="login-screen" class="screen active" style="background: var(--k-yellow); justify-content: center; align-items: center;">
-    <h1 style="color: var(--k-brown)">StarTalk</h1>
-    <div style="width: 80%; display: flex; flex-direction: column; gap: 10px;">
-        <input type="email" id="email" placeholder="이메일" style="padding:15px; border:none; border-radius:5px;">
-        <input type="password" id="pw" placeholder="비밀번호" style="padding:15px; border:none; border-radius:5px;">
-        <button onclick="authAction('login')" style="padding:15px; background:var(--k-brown); color:white; border:none; border-radius:5px;">로그인</button>
-        <button onclick="authAction('signup')" style="background:none; border:none; color:#555;">계정 만들기</button>
+    <h1 style="color: var(--k-brown); margin-bottom: 30px;">StarTalk</h1>
+    <div style="width: 80%; max-width: 320px; display: flex; flex-direction: column; gap: 10px;">
+        <button onclick="loginWithGoogle()" style="padding:15px; background:white; color:#333; border:1px solid #ddd; border-radius:5px; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer;">
+            <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="20"> Google로 로그인
+        </button>
+        <div style="text-align:center; margin:10px 0; color:#888; font-size:12px;">또는 이메일 로그인</div>
+        <input type="email" id="email" placeholder="이메일" style="padding:12px; border:none; border-radius:5px;">
+        <input type="password" id="pw" placeholder="비밀번호" style="padding:12px; border:none; border-radius:5px;">
+        <button onclick="authAction('login')" style="padding:12px; background:var(--k-brown); color:white; border:none; border-radius:5px;">로그인</button>
+        <button onclick="authAction('signup')" style="background:none; border:none; color:#555; font-size:12px;">이메일 회원가입</button>
     </div>
 </div>
 
 <div id="main-screen" class="screen">
     <header>
-        <span id="my-id">ID: </span>
-        <button onclick="addFriendPrompt()" style="border:none; background:none; font-size:20px;">➕</button>
+        <span id="my-id">StarTalk</span>
+        <button class="btn-icon" onclick="addFriendPrompt()">➕</button>
     </header>
     <div id="friends-list" style="background:white; flex: 1; overflow-y:auto;"></div>
     
-    <div id="chat-layer" style="display:none; position:fixed; inset:0; background:var(--k-blue); flex-direction:column; z-index:100;">
-        <header><span onclick="closeChat()">← 뒤로</span> <span id="chat-target">상대방</span> <span></span></header>
+    <div id="chat-layer">
+        <header>
+            <span onclick="closeChat()" style="cursor:pointer;">←</span> 
+            <span id="chat-target">상대방</span> 
+            <button class="btn-icon" onclick="startCall()">📞</button>
+        </header>
         <div id="chat-window"></div>
         <div class="footer">
-            <button onclick="startCall()" style="background:none; border:none; font-size:20px;">📞</button>
-            <input type="text" id="msg-input" placeholder="메시지 입력">
-            <button onclick="sendMsg()" style="background:var(--k-yellow); border:none; padding:10px 15px; border-radius:5px;">전송</button>
+            <input type="text" id="msg-input" placeholder="메시지 입력..." onkeypress="if(event.keyCode==13) sendMsg()">
+            <button onclick="sendMsg()" style="background:var(--k-yellow); border:none; padding:10px 15px; border-radius:5px; font-weight:bold;">전송</button>
         </div>
     </div>
 </div>
 
 <div id="call-overlay">
-    <div class="profile" style="width:100px; height:100px; margin:0 auto 20px;"></div>
-    <h2 id="call-user">상대방</h2>
+    <div class="profile" style="width:100px; height:100px; margin-bottom:20px; background:#95a5a6;"></div>
+    <h2 id="call-user">사용자</h2>
     <div id="call-status">연결 중...</div>
     <div class="call-timer" id="timer">00:00</div>
     <button class="hangup" onclick="endCall()">통화 종료</button>
@@ -74,10 +84,10 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getDatabase, ref, push, onChildAdded, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // 제공해주신 star1 설정 적용
+    // star1-e9870 설정
     const firebaseConfig = {
         apiKey: "AIzaSyC_PPRBwcwpy-3qmO3XgNGFuJy19QJkT6Y",
         authDomain: "star1-e9870.firebaseapp.com",
@@ -91,14 +101,20 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase(app);
+    const provider = new GoogleAuthProvider();
     let userNow = null;
 
-    // [인증]
+    // [구글 로그인]
+    window.loginWithGoogle = () => {
+        signInWithPopup(auth, provider).catch(e => alert(e.message));
+    };
+
+    // [이메일 인증]
     window.authAction = (type) => {
         const em = document.getElementById('email').value;
         const ps = document.getElementById('pw').value;
-        if(type === 'login') signInWithEmailAndPassword(auth, em, ps);
-        else createUserWithEmailAndPassword(auth, em, ps);
+        if(type === 'login') signInWithEmailAndPassword(auth, em, ps).catch(e => alert(e.message));
+        else createUserWithEmailAndPassword(auth, em, ps).catch(e => alert(e.message));
     };
 
     onAuthStateChanged(auth, (user) => {
@@ -106,15 +122,15 @@
             userNow = user;
             document.getElementById('login-screen').classList.remove('active');
             document.getElementById('main-screen').classList.add('active');
-            document.getElementById('my-id').innerText = "ID: " + user.email.split('@')[0];
+            document.getElementById('my-id').innerText = user.displayName || user.email.split('@')[0];
             loadFriends();
         }
     });
 
     // [친구 추가]
     window.addFriendPrompt = () => {
-        const fId = prompt("추가할 친구의 이메일을 입력하세요:");
-        if(fId) push(ref(db, `users/${userNow.uid}/friends`), { email: fId });
+        const fEmail = prompt("친구의 이메일을 입력하세요:");
+        if(fEmail) push(ref(db, `users/${userNow.uid}/friends`), { email: fEmail });
     };
 
     function loadFriends() {
@@ -130,45 +146,44 @@
         });
     }
 
-    // [채팅 & 번역]
+    // [채팅 & 가상 번역]
     window.openChat = (targetEmail) => {
         document.getElementById('chat-layer').style.display = 'flex';
         document.getElementById('chat-target').innerText = targetEmail.split('@')[0];
-        document.getElementById('chat-window').innerHTML = "";
-        // 실시간 리스너 (방 ID는 간단히 생성)
+        const chatWin = document.getElementById('chat-window');
+        chatWin.innerHTML = "";
+        
         const roomID = [userNow.email.split('@')[0], targetEmail.split('@')[0]].sort().join('_');
         onChildAdded(ref(db, `rooms/${roomID}`), (snap) => {
-            renderMsg(snap.val());
+            const data = snap.val();
+            const isMe = data.sender === userNow.email.split('@')[0];
+            const div = document.createElement('div');
+            div.className = `bubble ${isMe ? 'me' : 'other'}`;
+            div.innerHTML = `${data.text} ${data.trans ? `<span class="trans">${data.trans}</span>` : ''}`;
+            chatWin.appendChild(div);
+            chatWin.scrollTop = chatWin.scrollHeight;
         });
     };
 
     window.closeChat = () => document.getElementById('chat-layer').style.display = 'none';
 
-    window.sendMsg = async () => {
+    window.sendMsg = () => {
         const input = document.getElementById('msg-input');
         if(!input.value) return;
         const target = document.getElementById('chat-target').innerText;
         const roomID = [userNow.email.split('@')[0], target].sort().join('_');
         
-        // 가상 번역 (실제 API 연결 시 fetch 사용)
-        const translated = input.value.includes("안녕") ? "Hello" : ""; 
+        // 간단한 가상 번역 로직 (안녕 -> Hello)
+        let transText = "";
+        if(input.value.includes("안녕")) transText = "Hello / Hi";
 
         push(ref(db, `rooms/${roomID}`), {
             sender: userNow.email.split('@')[0],
             text: input.value,
-            trans: translated
+            trans: transText
         });
         input.value = "";
     };
-
-    function renderMsg(data) {
-        const isMe = data.sender === userNow.email.split('@')[0];
-        const div = document.createElement('div');
-        div.className = `bubble ${isMe ? 'me' : 'other'}`;
-        div.innerHTML = `${data.text} ${data.trans ? `<span class="trans">${data.trans}</span>` : ''}`;
-        document.getElementById('chat-window').appendChild(div);
-        document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
-    }
 
     // [통화]
     window.startCall = () => {
