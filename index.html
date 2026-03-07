@@ -3,162 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StarTalk</title>
+    <title>StarTalk Pro</title>
     <style>
-        :root {
-            --kakao-blue: #BACEE0;
-            --kakao-yellow: #FEE500;
-            --kakao-brown: #3C3E3F;
-            --my-bubble: #FEE500;
-            --other-bubble: #ffffff;
-        }
+        :root { --k-yellow: #FEE500; --k-blue: #BACEE0; --k-brown: #3C3E3F; }
+        body { font-family: sans-serif; margin: 0; background-color: var(--k-blue); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: var(--kakao-blue); margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        /* 화면 전환 */
+        .screen { display: none; height: 100vh; flex-direction: column; }
+        .active { display: flex; }
 
-        /* 헤더: 카톡 상단바 */
-        header { background-color: var(--kakao-blue); padding: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 600; color: #333; position: sticky; top: 0; }
+        /* 헤더 & 리스트 */
+        header { background: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
+        .item { background: white; padding: 12px 15px; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+        .profile { width: 45px; height: 45px; border-radius: 18px; background: #eee; margin-right: 12px; }
 
-        /* 채팅 영역 */
-        #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
-        .date-line { text-align: center; font-size: 12px; color: #556677; background: rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 15px; align-self: center; margin: 20px 0; }
+        /* 채팅창 */
+        #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .bubble { padding: 8px 12px; border-radius: 10px; font-size: 14px; max-width: 70%; line-height: 1.4; position: relative; }
+        .me { align-self: flex-end; background: var(--k-yellow); border-top-right-radius: 0; }
+        .other { align-self: flex-start; background: white; border-top-left-radius: 0; }
+        .trans { display: block; font-size: 11px; color: #666; margin-top: 4px; border-top: 1px dashed #ccc; padding-top: 4px; }
 
-        /* 말풍선 공통 스타일 */
-        .msg-container { display: flex; margin-bottom: 15px; max-width: 85%; }
-        .profile-img { width: 40px; height: 40px; border-radius: 15px; background: #eee; margin-right: 8px; flex-shrink: 0; overflow: hidden; }
-        .profile-img img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .msg-content { display: flex; flex-direction: column; }
-        .user-name { font-size: 12px; color: #333; margin-bottom: 5px; }
-        .bubble { padding: 8px 12px; border-radius: 6px; font-size: 14px; line-height: 1.5; position: relative; word-break: break-all; }
-        
-        /* 상대방 말풍선 */
-        .other { align-self: flex-start; }
-        .other .bubble { background-color: var(--other-bubble); color: #000; }
-        .other .bubble::after { content: ''; position: absolute; left: -6px; top: 10px; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-right: 8px solid var(--other-bubble); }
-
-        /* 내 말풍선 */
-        .me { align-self: flex-end; flex-direction: row-reverse; }
-        .me .profile-img { display: none; } /* 내 프사는 보통 안 보임 */
-        .me .bubble { background-color: var(--my-bubble); color: #000; border-top-right-radius: 0; }
-        .me .bubble::after { content: ''; position: absolute; right: -6px; top: 10px; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 8px solid var(--my-bubble); }
-
-        /* 이모티콘 전용 말풍선 */
-        .emoji-bubble { background: none !important; padding: 0 !important; }
-        .emoji-bubble::after { display: none !important; }
-        .emoji-bubble img { width: 120px; height: 120px; display: block; }
+        /* 통화 화면 */
+        #call-overlay { display: none; position: fixed; inset: 0; background: #2c3e50; color: white; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; }
+        .call-timer { font-size: 1.5rem; color: #2ecc71; margin: 20px 0; }
+        .hangup { background: #e74c3c; border: none; padding: 15px 40px; border-radius: 30px; color: white; font-weight: bold; cursor: pointer; }
 
         /* 하단 입력바 */
-        .bottom-bar { background: white; padding: 10px; display: flex; flex-direction: column; }
-        .input-row { display: flex; align-items: center; gap: 10px; }
-        .icon-btn { font-size: 24px; color: #555; cursor: pointer; background: none; border: none; padding: 0; }
-        #msg-input { flex: 1; border: 1px solid #ddd; background: #f9f9f9; padding: 8px 15px; border-radius: 18px; outline: none; }
-        .send-btn { background: var(--kakao-yellow); border: none; padding: 7px 15px; border-radius: 5px; font-size: 13px; font-weight: bold; cursor: pointer; }
-
-        /* 이모티콘 창 */
-        #emoji-box { display: none; height: 250px; background: #f0f0f0; overflow-y: auto; padding: 10px; }
-        .emoji-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .emoji-grid img { width: 100%; aspect-ratio: 1; background: white; border-radius: 5px; cursor: pointer; }
+        .footer { background: white; padding: 10px; display: flex; align-items: center; gap: 8px; }
+        #msg-input { flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 20px; outline: none; }
     </style>
 </head>
 <body>
 
-<header>
-    <span>←</span>
-    <span>돼지 대장님</span>
-    <span>🔍 ☰</span>
-</header>
+<div id="login-screen" class="screen active" style="background: var(--k-yellow); justify-content: center; align-items: center;">
+    <h1 style="color: var(--k-brown)">StarTalk</h1>
+    <div style="width: 80%; display: flex; flex-direction: column; gap: 10px;">
+        <input type="email" id="email" placeholder="이메일" style="padding:15px; border:none; border-radius:5px;">
+        <input type="password" id="pw" placeholder="비밀번호" style="padding:15px; border:none; border-radius:5px;">
+        <button onclick="authAction('login')" style="padding:15px; background:var(--k-brown); color:white; border:none; border-radius:5px;">로그인</button>
+        <button onclick="authAction('signup')" style="background:none; border:none; color:#555;">계정 만들기</button>
+    </div>
+</div>
 
-<div id="chat-window">
-    <div class="date-line">2026년 3월 7일 토요일</div>
+<div id="main-screen" class="screen">
+    <header>
+        <span id="my-id">ID: </span>
+        <button onclick="addFriendPrompt()" style="border:none; background:none; font-size:20px;">➕</button>
+    </header>
+    <div id="friends-list" style="background:white; flex: 1; overflow-y:auto;"></div>
     
-    <div class="msg-container other">
-        <div class="profile-img"><img src="https://cdn-icons-png.flaticon.com/512/2632/2632839.png"></div>
-        <div class="msg-content">
-            <div class="user-name">돼지 대장님</div>
-            <div class="bubble">꿀꿀! 밥 먹었니?</div>
+    <div id="chat-layer" style="display:none; position:fixed; inset:0; background:var(--k-blue); flex-direction:column; z-index:100;">
+        <header><span onclick="closeChat()">← 뒤로</span> <span id="chat-target">상대방</span> <span></span></header>
+        <div id="chat-window"></div>
+        <div class="footer">
+            <button onclick="startCall()" style="background:none; border:none; font-size:20px;">📞</button>
+            <input type="text" id="msg-input" placeholder="메시지 입력">
+            <button onclick="sendMsg()" style="background:var(--k-yellow); border:none; padding:10px 15px; border-radius:5px;">전송</button>
         </div>
     </div>
 </div>
 
-<div class="bottom-bar">
-    <div class="input-row">
-        <button class="icon-btn" onclick="toggleEmojiBox()">😊</button>
-        <input type="text" id="msg-input" placeholder="메시지 입력">
-        <button class="send-btn" id="send-btn">전송</button>
-    </div>
-</div>
-
-<div id="emoji-box">
-    <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
-        <small>나만의 돼지 이모티콘</small>
-        <label for="file-up" style="cursor:pointer; color:blue; font-size:12px;">+ 추가</label>
-        <input type="file" id="file-up" style="display:none" onchange="uploadEmoji(event)">
-    </div>
-    <div class="emoji-grid" id="emoji-grid-list">
-        <img src="https://cdn-icons-png.flaticon.com/512/1998/1998662.png" onclick="sendEmoji(this.src)">
-    </div>
+<div id="call-overlay">
+    <div class="profile" style="width:100px; height:100px; margin:0 auto 20px;"></div>
+    <h2 id="call-user">상대방</h2>
+    <div id="call-status">연결 중...</div>
+    <div class="call-timer" id="timer">00:00</div>
+    <button class="hangup" onclick="endCall()">통화 종료</button>
 </div>
 
 <script type="module">
-    // Firebase 설정 (제공해주신 코드 적용)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-    
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getDatabase, ref, push, onChildAdded, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // 제공해주신 star1 설정 적용
     const firebaseConfig = {
-        apiKey: "AIzaSyDEl6KxUHz2EohE3UA6PBu9Lz708AHZAI8",
-        authDomain: "star2-4641a.firebaseapp.com",
-        databaseURL: "https://star2-4641a-default-rtdb.firebaseio.com",
-        projectId: "star2-4641a",
-        storageBucket: "star2-4641a.firebasestorage.app",
-        messagingSenderId: "388844449252",
-        appId: "1:388844449252:web:467421ef449f56b003abf1"
+        apiKey: "AIzaSyC_PPRBwcwpy-3qmO3XgNGFuJy19QJkT6Y",
+        authDomain: "star1-e9870.firebaseapp.com",
+        databaseURL: "https://star1-e9870-default-rtdb.firebaseio.com",
+        projectId: "star1-e9870",
+        storageBucket: "star1-e9870.firebasestorage.app",
+        messagingSenderId: "849251951961",
+        appId: "1:849251951961:web:25275d26040f704e7b1848"
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getDatabase(app);
-    const chatWindow = document.getElementById('chat-window');
+    let userNow = null;
 
-    // 메시지 전송 (텍스트)
-    document.getElementById('send-btn').onclick = () => {
-        const input = document.getElementById('msg-input');
-        if(!input.value.trim()) return;
-        push(ref(db, 'chat'), { sender: 'me', type: 'text', content: input.value });
-        input.value = '';
+    // [인증]
+    window.authAction = (type) => {
+        const em = document.getElementById('email').value;
+        const ps = document.getElementById('pw').value;
+        if(type === 'login') signInWithEmailAndPassword(auth, em, ps);
+        else createUserWithEmailAndPassword(auth, em, ps);
     };
 
-    // 메시지 전송 (이모티콘)
-    window.sendEmoji = (src) => {
-        push(ref(db, 'chat'), { sender: 'me', type: 'emoji', content: src });
-        document.getElementById('emoji-box').style.display = 'none';
-    };
-
-    // 실시간 메시지 수신
-    onChildAdded(ref(db, 'chat'), (snap) => {
-        const data = snap.val();
-        const isMe = data.sender === 'me';
-        
-        const container = document.createElement('div');
-        container.className = `msg-container ${isMe ? 'me' : 'other'}`;
-        
-        let bubbleContent = data.type === 'emoji' 
-            ? `<div class="bubble emoji-bubble"><img src="${data.content}"></div>`
-            : `<div class="bubble">${data.content}</div>`;
-
-        container.innerHTML = `
-            <div class="profile-img"><img src="https://cdn-icons-png.flaticon.com/512/2632/2632839.png"></div>
-            <div class="msg-content">
-                ${isMe ? '' : `<div class="user-name">돼지 대장님</div>`}
-                ${bubbleContent}
-            </div>
-        `;
-        
-        chatWindow.appendChild(container);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
+    onAuthStateChanged(auth, (user) => {
+        if(user) {
+            userNow = user;
+            document.getElementById('login-screen').classList.remove('active');
+            document.getElementById('main-screen').classList.add('active');
+            document.getElementById('my-id').innerText = "ID: " + user.email.split('@')[0];
+            loadFriends();
+        }
     });
 
-    window.toggleEmojiBox = () => {
-        const box = document.getElementById('emoji-box');
-        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    // [친구 추가]
+    window.addFriendPrompt = () => {
+        const fId = prompt("추가할 친구의 이메일을 입력하세요:");
+        if(fId) push(ref(db, `users/${userNow.uid}/friends`), { email: fId });
+    };
+
+    function loadFriends() {
+        const listDiv = document.getElementById('friends-list');
+        listDiv.innerHTML = "";
+        onChildAdded(ref(db, `users/${userNow.uid}/friends`), (snap) => {
+            const f = snap.val();
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.innerHTML = `<div class="profile"></div><div>${f.email.split('@')[0]}</div>`;
+            div.onclick = () => openChat(f.email);
+            listDiv.appendChild(div);
+        });
+    }
+
+    // [채팅 & 번역]
+    window.openChat = (targetEmail) => {
+        document.getElementById('chat-layer').style.display = 'flex';
+        document.getElementById('chat-target').innerText = targetEmail.split('@')[0];
+        document.getElementById('chat-window').innerHTML = "";
+        // 실시간 리스너 (방 ID는 간단히 생성)
+        const roomID = [userNow.email.split('@')[0], targetEmail.split('@')[0]].sort().join('_');
+        onChildAdded(ref(db, `rooms/${roomID}`), (snap) => {
+            renderMsg(snap.val());
+        });
+    };
+
+    window.closeChat = () => document.getElementById('chat-layer').style.display = 'none';
+
+    window.sendMsg = async () => {
+        const input = document.getElementById('msg-input');
+        if(!input.value) return;
+        const target = document.getElementById('chat-target').innerText;
+        const roomID = [userNow.email.split('@')[0], target].sort().join('_');
+        
+        // 가상 번역 (실제 API 연결 시 fetch 사용)
+        const translated = input.value.includes("안녕") ? "Hello" : ""; 
+
+        push(ref(db, `rooms/${roomID}`), {
+            sender: userNow.email.split('@')[0],
+            text: input.value,
+            trans: translated
+        });
+        input.value = "";
+    };
+
+    function renderMsg(data) {
+        const isMe = data.sender === userNow.email.split('@')[0];
+        const div = document.createElement('div');
+        div.className = `bubble ${isMe ? 'me' : 'other'}`;
+        div.innerHTML = `${data.text} ${data.trans ? `<span class="trans">${data.trans}</span>` : ''}`;
+        document.getElementById('chat-window').appendChild(div);
+        document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
+    }
+
+    // [통화]
+    window.startCall = () => {
+        document.getElementById('call-overlay').style.display = 'flex';
+        document.getElementById('call-user').innerText = document.getElementById('chat-target').innerText;
+        let s = 0;
+        window.timerInt = setInterval(() => {
+            s++;
+            const min = Math.floor(s/60).toString().padStart(2,'0');
+            const sec = (s%60).toString().padStart(2,'0');
+            document.getElementById('timer').innerText = `${min}:${sec}`;
+        }, 1000);
+    };
+
+    window.endCall = () => {
+        clearInterval(window.timerInt);
+        document.getElementById('call-overlay').style.display = 'none';
+        document.getElementById('timer').innerText = "00:00";
     };
 </script>
 </body>
