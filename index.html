@@ -3,65 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StarTalk Video Call</title>
+    <title>StarTalk Video</title>
     <style>
         :root { --k-yellow: #FEE500; --k-blue: #BACEE0; --k-brown: #3C3E3F; }
         body { margin: 0; font-family: sans-serif; background-color: var(--k-blue); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
+        /* 로딩 및 로그인 */
+        #loader { position: fixed; inset: 0; background: var(--k-yellow); z-index: 9999; display: flex; align-items: center; justify-content: center; font-weight: bold; }
         .screen { display: none; height: 100vh; flex-direction: column; }
         .active { display: flex; }
+        #login-screen { background: var(--k-yellow); justify-content: center; align-items: center; }
+        .google-btn { padding: 15px 25px; border: 1px solid #ddd; border-radius: 10px; background: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+
+        /* 메인 & 프로필 */
         header { background: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
-        
-        /* 통화 화면 레이어 */
-        #call-layer { 
-            display: none; position: fixed; inset: 0; background: #000; z-index: 500; 
-            flex-direction: column; align-items: center; justify-content: center; 
-        }
+        .my-profile { background: white; padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid #eee; }
+        .my-photo { width: 60px; height: 60px; border-radius: 22px; object-fit: cover; border: 2px solid var(--k-yellow); }
+        #friends-list { flex: 1; background: white; overflow-y: auto; }
+        .f-item { padding: 15px; border-bottom: 1px solid #f9f9f9; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+
+        /* 통화 레이어 (WebRTC) */
+        #call-layer { display: none; position: fixed; inset: 0; background: #000; z-index: 500; flex-direction: column; }
         #remote-video { width: 100%; height: 100%; object-fit: cover; }
-        #local-video { 
-            position: absolute; right: 20px; top: 20px; width: 100px; height: 150px; 
-            border: 2px solid white; border-radius: 10px; object-fit: cover; z-index: 510;
-        }
-        .call-btns { position: absolute; bottom: 50px; display: flex; gap: 30px; z-index: 520; }
+        #local-video { position: absolute; right: 20px; top: 20px; width: 100px; height: 140px; border-radius: 10px; border: 2px solid white; object-fit: cover; }
+        .call-ctrl { position: absolute; bottom: 40px; width: 100%; display: flex; justify-content: center; gap: 30px; }
         .end-btn { width: 60px; height: 60px; background: #ff4d4d; border-radius: 50%; border: none; color: white; font-size: 24px; cursor: pointer; }
 
-        /* 채팅 UI */
+        /* 채팅창 */
         #chat-layer { display: none; position: fixed; inset: 0; background: var(--k-blue); flex-direction: column; z-index: 100; }
-        #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .bubble { padding: 8px 12px; border-radius: 10px; font-size: 14px; max-width: 70%; }
-        .me { align-self: flex-end; background: var(--k-yellow); }
-        .other { align-self: flex-start; background: white; }
-        .call-icon { font-size: 20px; cursor: pointer; margin-left: 15px; }
+        .call-icons span { font-size: 20px; margin-left: 15px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div id="call-layer">
-        <video id="remote-video" autoplay playsinline></video>
-        <video id="local-video" autoplay playsinline muted></video>
-        <div class="call-btns">
-            <button class="end-btn" onclick="endCall()">❌</button>
-        </div>
+    <div id="loader">연결 중...</div>
+
+    <div id="login-screen" class="screen">
+        <h1 style="color: var(--k-brown); font-size: 40px; margin-bottom: 30px;">StarTalk</h1>
+        <button class="google-btn" onclick="login()">
+            <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="22"> Google로 로그인
+        </button>
     </div>
 
-    <div id="main-screen" class="screen active">
+    <div id="main-screen" class="screen">
         <header>
-            <b id="my-name">StarTalk</b>
-            <button onclick="addFriend()">➕</button>
+            <b>친구</b>
+            <button onclick="addFriend()" style="background:none; border:none; font-size:20px;">➕</button>
         </header>
-        <div id="friends-list" style="background:white; flex:1;"></div>
+        <div class="my-profile">
+            <img id="my-photo" class="my-photo" src="">
+            <b id="my-name">이름</b>
+        </div>
+        <div id="friends-list"></div>
     </div>
 
     <div id="chat-layer">
         <header>
-            <span onclick="closeChat()">←</span>
+            <span onclick="closeChat()" style="cursor:pointer">←</span>
             <span id="chat-target">상대방</span>
-            <div>
-                <span class="call-icon" onclick="startCall('voice')">📞</span>
-                <span class="call-icon" onclick="startCall('video')">🎥</span>
+            <div class="call-icons">
+                <span onclick="makeCall('voice')">📞</span>
+                <span onclick="makeCall('video')">🎥</span>
             </div>
         </header>
-        <div id="chat-window"></div>
+        <div id="chat-window" style="flex:1; overflow-y:auto; padding:15px;"></div>
+    </div>
+
+    <div id="call-layer">
+        <video id="remote-video" autoplay playsinline></video>
+        <video id="local-video" autoplay playsinline muted></video>
+        <div class="call-ctrl">
+            <button class="end-btn" onclick="hangUp()">❌</button>
+        </div>
     </div>
 
     <script type="module">
@@ -69,6 +82,7 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getDatabase, ref, set, push, onChildAdded, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // Na Chan-min님의 star1 설정
         const firebaseConfig = {
             apiKey: "AIzaSyC_PPRBwcwpy-3qmO3XgNGFuJy19QJkT6Y",
             authDomain: "star1-e9870.firebaseapp.com",
@@ -80,58 +94,56 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
-        let userNow, peerConn, localStream;
+        const provider = new GoogleAuthProvider();
+        let userNow, pc, localStream;
 
-        // WebRTC 설정
-        const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+        // 구글 로그인
+        window.login = () => signInWithPopup(auth, provider);
 
         onAuthStateChanged(auth, (user) => {
+            document.getElementById('loader').style.display = 'none';
             if (user) {
                 userNow = user;
+                document.getElementById('login-screen').classList.remove('active');
+                document.getElementById('main-screen').classList.add('active');
+                document.getElementById('my-photo').src = user.photoURL;
                 document.getElementById('my-name').innerText = user.displayName;
-                listenForCalls(); // 전화 오는지 감시
+                listenCall();
                 loadFriends();
             } else {
-                signInWithPopup(auth, new GoogleAuthProvider());
+                document.getElementById('login-screen').classList.add('active');
             }
         });
 
-        // 1. 전화 걸기
-        window.startCall = async (type) => {
+        // 영상 통화 걸기
+        window.makeCall = async (mode) => {
             const target = document.getElementById('chat-target').innerText;
             const roomID = [userNow.email.split('@')[0], target].sort().join('_');
             
             document.getElementById('call-layer').style.display = 'flex';
-            localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: type === 'video', 
-                audio: true 
-            });
+            localStream = await navigator.mediaDevices.getUserMedia({ video: mode === 'video', audio: true });
             document.getElementById('local-video').srcObject = localStream;
 
-            peerConn = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConn.addTrack(track, localStream));
+            pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+            localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+            
+            pc.onicecandidate = e => e.candidate && push(ref(db, `calls/${roomID}/ice`), e.candidate.toJSON());
+            pc.ontrack = e => document.getElementById('remote-video').srcObject = e.streams[0];
 
-            peerConn.onicecandidate = (e) => {
-                if(e.candidate) push(ref(db, `calls/${roomID}/candidates`), e.candidate.toJSON());
-            };
-            peerConn.ontrack = (e) => {
-                document.getElementById('remote-video').srcObject = e.streams[0];
-            };
-
-            const offer = await peerConn.createOffer();
-            await peerConn.setLocalDescription(offer);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
             set(ref(db, `calls/${roomID}/offer`), { sdp: offer.sdp, type: offer.type, from: userNow.email });
         };
 
-        // 2. 전화 받기 감시
-        function listenForCalls() {
-            onChildAdded(ref(db, `calls`), (snap) => {
+        // 전화 감시
+        function listenCall() {
+            onChildAdded(ref(db, `calls`), snap => {
                 const roomID = snap.key;
                 if (!roomID.includes(userNow.email.split('@')[0])) return;
-
-                onValue(ref(db, `calls/${roomID}/offer`), async (s) => {
+                
+                onValue(ref(db, `calls/${roomID}/offer`), async s => {
                     if (s.exists() && s.val().from !== userNow.email) {
-                        if (confirm(s.val().from + "님에게 전화가 왔습니다. 받으시겠습니까?")) {
+                        if (confirm(s.val().from + "님에게 전화가 왔습니다!")) {
                             acceptCall(roomID, s.val());
                         }
                     }
@@ -139,42 +151,26 @@
             });
         }
 
-        async function acceptCall(roomID, offer) {
+        async function acceptCall(id, offer) {
             document.getElementById('call-layer').style.display = 'flex';
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             document.getElementById('local-video').srcObject = localStream;
-
-            peerConn = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConn.addTrack(track, localStream));
-
-            peerConn.onicecandidate = (e) => {
-                if(e.candidate) push(ref(db, `calls/${roomID}/candidates`), e.candidate.toJSON());
-            };
-            peerConn.ontrack = (e) => {
-                document.getElementById('remote-video').srcObject = e.streams[0];
-            };
-
-            await peerConn.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await peerConn.createAnswer();
-            await peerConn.setLocalDescription(answer);
-            set(ref(db, `calls/${roomID}/answer`), { sdp: answer.sdp, type: answer.type });
-
-            onChildAdded(ref(db, `calls/${roomID}/candidates`), (c) => {
-                peerConn.addIceCandidate(new RTCIceCandidate(c.val()));
-            });
+            pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+            localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+            pc.ontrack = e => document.getElementById('remote-video').srcObject = e.streams[0];
+            
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            const ans = await pc.createAnswer();
+            await pc.setLocalDescription(ans);
+            set(ref(db, `calls/${id}/answer`), { sdp: ans.sdp, type: ans.type });
         }
 
-        window.endCall = () => {
+        window.hangUp = () => {
             if(localStream) localStream.getTracks().forEach(t => t.stop());
-            if(peerConn) peerConn.close();
             document.getElementById('call-layer').style.display = 'none';
-            // 데이터베이스 통화 정보 삭제
-            const target = document.getElementById('chat-target').innerText;
-            const roomID = [userNow.email.split('@')[0], target].sort().join('_');
-            remove(ref(db, `calls/${roomID}`));
+            location.reload(); // 깔끔한 종료를 위해 새로고침
         };
 
-        // 기타 기본 함수들 (친구 추가 등)
         window.addFriend = () => {
             const email = prompt("친구 이메일:");
             if(email) push(ref(db, `users/${userNow.uid}/friends`), { email: email });
@@ -183,10 +179,10 @@
         function loadFriends() {
             const list = document.getElementById('friends-list');
             list.innerHTML = "";
-            onChildAdded(ref(db, `users/${userNow.uid}/friends`), (snap) => {
+            onChildAdded(ref(db, `users/${userNow.uid}/friends`), snap => {
                 const f = snap.val();
                 const div = document.createElement('div');
-                div.style.padding = "15px";
+                div.className = 'f-item';
                 div.innerText = f.email;
                 div.onclick = () => {
                     document.getElementById('chat-layer').style.display = 'flex';
